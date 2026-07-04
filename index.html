@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="CourseHub – Upload and watch your video courses with a Udemy-style interface and YouTube-style watch history." />
+  <title>CourseHub – Learn Anything</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Identity Services (for Drive OAuth) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── Navbar ── -->
+    <nav id="navbar">
+      <div class="nav-container">
+        <a href="#home" class="nav-logo" aria-label="CourseHub Home">
+          <div class="logo-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <span class="logo-text">CourseHub</span>
+        </a>
+
+        <div class="nav-links" id="nav-links">
+          <a href="#home" class="nav-link" data-page="home" id="nav-home">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Home
+          </a>
+          <a href="#history" class="nav-link" data-page="history" id="nav-history">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            History
+          </a>
+          <a href="#upload" class="nav-link nav-cta" data-page="upload" id="nav-upload">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Course
+          </a>
+          <!-- Google Drive button -->
+          <button class="nav-drive-btn" id="nav-drive-btn" title="Connect Google Drive" onclick="Views.openSettings()">
+            <svg width="16" height="16" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 00-1.2 4.5h27.5z" fill="#00ac47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.25z" fill="#ea4335"/><path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+            <span class="drive-dot" id="drive-dot"></span>
+          </button>
+        </div>
+
+        <button class="hamburger" id="hamburger-btn" aria-label="Toggle menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <div class="mobile-nav" id="mobile-nav">
+        <a href="#home" class="mobile-nav-link" data-page="home">Home</a>
+        <a href="#history" class="mobile-nav-link" data-page="history">History</a>
+        <a href="#upload" class="mobile-nav-link" data-page="upload">Upload Course</a>
+      </div>
+    </nav>
+
+    <!-- ── Page Content ── -->
+    <main id="main-content" role="main"></main>
+
+    <!-- ── Toast Notifications ── -->
+    <div id="toast-container" aria-live="polite"></div>
+
+    <!-- ── Upload Loading Overlay ── -->
+    <div id="upload-overlay" class="upload-overlay hidden" aria-hidden="true">
+      <div class="upload-overlay-box">
+        <div class="spinner"></div>
+        <p class="upload-overlay-title">Saving Course…</p>
+        <p class="upload-overlay-sub" id="upload-overlay-msg">Processing videos…</p>
+        <div class="upload-overlay-bar">
+          <div class="upload-overlay-fill" id="upload-overlay-fill"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- #app -->
+
+  <!-- ── Google Drive Settings Modal ── -->
+  <div id="drive-modal" class="drive-modal-overlay hidden" aria-modal="true" role="dialog">
+    <div class="drive-modal-box">
+      <div class="drive-modal-header">
+        <div class="drive-modal-logo">
+          <svg width="24" height="24" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 00-1.2 4.5h27.5z" fill="#00ac47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.25z" fill="#ea4335"/><path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+          Google Drive Storage
+        </div>
+        <button class="drive-modal-close" id="drive-modal-close">✕</button>
+      </div>
+
+      <!-- Connected state -->
+      <div id="drive-connected-view" class="hidden">
+        <div class="drive-connected-badge">
+          <span class="drive-ok-dot"></span>
+          Connected to Google Drive
+        </div>
+        <p class="drive-info-text">New courses you upload will be saved to your <strong>CourseHub</strong> folder on Google Drive. Your laptop stores <strong>zero</strong> video data.</p>
+        <div class="drive-modal-actions">
+          <button class="btn btn-danger" id="btn-drive-disconnect">Disconnect Drive</button>
+          <button class="btn btn-secondary" id="btn-drive-modal-close2">Close</button>
+        </div>
+      </div>
+
+      <!-- Setup state -->
+      <div id="drive-setup-view">
+        <p class="drive-info-text">Connect Google Drive so videos are stored there instead of your laptop. Follow these one-time steps:</p>
+
+        <div class="drive-steps">
+          <div class="drive-step">
+            <div class="drive-step-num">1</div>
+            <div>
+              <div class="drive-step-title">Run via local server</div>
+              <div class="drive-step-body">Open a terminal in the app folder and run:<br>
+                <code>python -m http.server 8080</code><br>
+                Then open <strong>http://localhost:8080</strong> in your browser.
+              </div>
+            </div>
+          </div>
+          <div class="drive-step">
+            <div class="drive-step-num">2</div>
+            <div>
+              <div class="drive-step-title">Create a Google Cloud OAuth Client</div>
+              <div class="drive-step-body">
+                <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="drive-link">console.cloud.google.com → Credentials</a><br>
+                → Create → OAuth 2.0 Client ID → Web app<br>
+                → Add <strong>http://localhost:8080</strong> as Authorized JS origin<br>
+                → Enable <strong>Google Drive API</strong> in the library
+              </div>
+            </div>
+          </div>
+          <div class="drive-step">
+            <div class="drive-step-num">3</div>
+            <div>
+              <div class="drive-step-title">Paste your Client ID below</div>
+              <div class="drive-step-body">Copy the Client ID from Google Cloud (ends in <em>.apps.googleusercontent.com</em>)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="drive-input-row">
+          <input type="text" id="drive-client-id-input" class="drive-client-input"
+                 placeholder="123456789-xxxx.apps.googleusercontent.com"
+                 autocomplete="off" spellcheck="false">
+          <button class="btn btn-primary" id="btn-drive-connect">Connect &amp; Sign In</button>
+        </div>
+        <p class="drive-input-hint" id="drive-input-hint"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
