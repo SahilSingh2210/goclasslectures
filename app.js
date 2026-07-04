@@ -269,6 +269,9 @@ const DriveMeta = {
   }
 };
 
+/* Service Worker promise — resolves to the active SW for Drive streaming */
+let _swPromise = null;
+
 /* ============================================================
    2. LOCAL STORAGE — course metadata, progress, history
    ============================================================ */
@@ -1509,29 +1512,43 @@ const Views = {
     const videoWrap = document.getElementById('player-video-wrap');
 
     try {
-      let blob;
       if (lesson.storageMode === 'gdrive') {
-        // Show Drive download progress
+        /* ── Google Drive: stream via Service Worker (no full download!) ── */
         loading.innerHTML = `
           <div style="text-align:center">
             <div class="drive-load-icon">☁️</div>
-            <p style="color:var(--text-2);margin:12px 0 6px;font-size:0.9rem">Downloading from Google Drive…</p>
-            <div class="drive-load-bar"><div class="drive-load-fill" id="drive-load-fill"></div></div>
-            <p id="drive-load-pct" style="color:var(--text-3);font-size:0.78rem;margin-top:6px">0%</p>
+            <p style="color:var(--text-2);margin:12px 0 6px;font-size:0.9rem">Connecting to Google Drive…</p>
+            <div class="drive-load-bar"><div class="drive-load-fill" style="width:65%"></div></div>
           </div>`;
+
         const token = await DriveAuth.getValidToken();
-        blob = await DriveStorage.getBlob(lesson.driveVideoId, token);
-        const fill = document.getElementById('drive-load-fill');
-        const pct  = document.getElementById('drive-load-pct');
-        if (fill) fill.style.width = '100%';
-        if (pct)  pct.textContent  = '100%';
+        const sw    = _swPromise ? await _swPromise : null;
+
+        if (sw) {
+          /* Service Worker is active — send token and stream directly.
+             The browser handles buffering, seeking, and range requests
+             just like any normal video URL. No full download needed. */
+          sw.postMessage({ type: 'DRIVE_TOKEN', fileId: lesson.driveVideoId, token });
+          video.src = `./_drive/${lesson.driveVideoId}`;
+          video.load();
+          /* blobUrl stays null — nothing to revoke on cleanup */
+        } else {
+          /* SW not yet active (first ever page load) — fall back to
+             full blob download. Will stream on next page load. */
+          showToast('First load: downloading video (streaming on next open)', 'info');
+          const blob = await DriveStorage.getBlob(lesson.driveVideoId, token);
+          blobUrl    = URL.createObjectURL(blob);
+          video.src  = blobUrl;
+          video.load();
+        }
       } else {
-        blob = await VideoDB.get(lesson.videoId);
+        /* ── Local IndexedDB ── */
+        const blob = await VideoDB.get(lesson.videoId);
         if (!blob) throw new Error('Video not found in storage. Please re-upload the course.');
+        blobUrl   = URL.createObjectURL(blob);
+        video.src = blobUrl;
+        video.load();
       }
-      blobUrl   = URL.createObjectURL(blob);
-      video.src = blobUrl;
-      video.load();
     } catch (err) {
       loading.innerHTML = `<div style="text-align:center;padding:24px;max-width:340px">
         <p style="color:var(--danger);font-size:1.1rem;margin-bottom:10px">⚠️ Could not load video</p>
